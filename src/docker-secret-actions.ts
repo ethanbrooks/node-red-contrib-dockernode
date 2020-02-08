@@ -4,75 +4,117 @@ import * as Dockerode from 'dockerode';
 
 module.exports = function (RED: Red) {
  
-
     function DockerSecretAction(n: any) {
         RED.nodes.createNode(this, n);
         let config = RED.nodes.getNode(n.config) as unknown as DockerConfiguration;
         let client = config.getClient();
         this.on('input', (msg) => {
 
-            let cid: string = n.secret || msg.secret || undefined;
-            let action = n.action || msg.action || msg.payload || undefined;
-            let cmd = n.cmd || msg.cmd|| msg.command || undefined;
-
-            if (cid === undefined) {
+            let secretId: string = n.secret || msg.payload.secretId || msg.secretId || undefined;
+            //TODO: make this disabled by default
+            let action = n.action || msg.action || msg.payload.action || undefined;
+            let options = n.options || msg.options || msg.payload.options || undefined;
+            if (secretId === undefined && !['list', 'prune', 'create'].includes(action)) {
                 this.error("Secret id/name must be provided via configuration or via `msg.secret`");
                 return;
             }
             this.status({});
-            executeAction(cid, client, action, cmd, this,msg);
+            executeAction(secretId, options, client, action, this,msg);
         });
 
-        function executeAction(cid: string, client: Dockerode, action: string, cmd: any, node: Node,msg) {
-            console.log(cmd);
-            let secret = client.getSecret(cid);
+        function executeAction(secretId: string, options: any, client: Dockerode, action: string, node: Node,msg) {
+
+            let secret = client.getSecret(secretId);
 
             switch (action) {
+  
+                case 'list':
+                    // https://docs.docker.com/engine/api/v1.40/#operation/SecretList
+                    client.listSecrets({ all: true })
+                        .then(res => {
+                            node.status({ fill: 'green', shape: 'dot', text: secretId + ' started' });
+                            node.send(Object.assign(msg,{ payload: res }));
+                        }).catch(err => {
+                            if (err.statusCode === 400) {
+                                node.error(`Bad parameter:  ${err.reason}`);
+                                node.send({ payload: err });
+                            } else if (err.statusCode === 500) {
+                                node.error(`Server Error: [${err.statusCode}] ${err.reason}`);
+                                node.send({ payload: err });
+                            } else {
+                                node.error(`Sytem Error:  [${err.statusCode}] ${err.reason}`);
+                                return;
+                            }
+                        });
+                    break;
+
                 case 'inspect':
+                    // https://docs.docker.com/engine/api/v1.40/#operation/SecretInspect
                     secret.inspect()
                         .then(res => {
-                            node.status({ fill: 'green', shape: 'dot', text: cid + ' started' });
+                            node.status({ fill: 'green', shape: 'dot', text: secretId + ' started' });
                             node.send(Object.assign(msg,{ payload: res }));
                         }).catch(err => {
-                            if (err.statusCode === 304) {
-                                node.warn(`Unable to start secret "${cid}", secret is already started.`);
+                            if (err.statusCode === 500) {
+                                node.error(`Server Error: [${err.statusCode}] ${err.reason}`);
                                 node.send({ payload: err });
                             } else {
-                                node.error(`Error starting secret:  [${err.statusCode}] ${err.reason}`);
+                                node.error(`Sytem Error:  [${err.statusCode}] ${err.reason}`);
                                 return;
                             }
                         });
                     break;
+
                 case 'remove':
+                    // https://docs.docker.com/engine/api/v1.40/#operation/SecretDelete
                     secret.remove()
                         .then(res => {
-                            node.status({ fill: 'green', shape: 'dot', text: cid + ' stopped' });
+                            node.status({ fill: 'green', shape: 'dot', text: secretId + ' stopped' });
                             node.send(Object.assign(msg,{ payload: res }));
                         }).catch(err => {
-                            if (err.statusCode === 304) {
-                                node.warn(`Unable to stop secret "${cid}", secret is already stopped.`);
+                            if (err.statusCode === 500) {
+                                node.error(`Server Error: [${err.statusCode}] ${err.reason}`);
                                 node.send({ payload: err });
                             } else {
-                                node.error(`Error stopping secret: [${err.statusCode}] ${err.reason}`);
+                                node.error(`Sytem Error:  [${err.statusCode}] ${err.reason}`);
                                 return;
                             }
                         });
                     break;
+
                 case 'update':
+                    // https://docs.docker.com/engine/api/v1.40/#operation/SecretUpdate
                     secret.update()
                         .then(res => {
-                            node.status({ fill: 'green', shape: 'dot', text: cid + ' restarted' });
+                            node.status({ fill: 'green', shape: 'dot', text: secretId + ' restarted' });
                             node.send(Object.assign(msg,{ payload: res }));
                         }).catch(err => {
-                            if (err.statusCode === 304) {
-                                node.warn(`Unable to restart secret "${cid}".`);
+                            if (err.statusCode === 500) {
+                                node.error(`Server Error: [${err.statusCode}] ${err.reason}`);
                                 node.send({ payload: err });
                             } else {
-                                node.error(`Error restarting secret: [${err.statusCode}] ${err.reason}`);
+                                node.error(`Sytem Error:  [${err.statusCode}] ${err.reason}`);
                                 return;
                             }
                         });
                     break;
+
+                case 'create':
+                    // https://docs.docker.com/engine/api/v1.40/#operation/SecretCreate
+                    client.createSecret(options)
+                        .then(res => {
+                            node.status({ fill: 'green', shape: 'dot', text: secretId + ' restarted' });
+                            node.send(Object.assign(msg,{ payload: res }));
+                        }).catch(err => {
+                            if (err.statusCode === 500) {
+                                node.error(`Server Error: [${err.statusCode}] ${err.reason}`);
+                                node.send({ payload: err });
+                            } else {
+                                node.error(`Sytem Error:  [${err.statusCode}] ${err.reason}`);
+                                return;
+                            }
+                        });
+                    break;                    
                 default:
                     node.error(`Called with an unknown action: ${action}`);
                     return;
@@ -80,6 +122,25 @@ module.exports = function (RED: Red) {
         }
     }
 
+    RED.httpAdmin.post("/secretSearch", function (req, res) {
+        RED.log.debug("POST /secretSearch");
+
+        const nodeId = req.body.id;
+        let config = RED.nodes.getNode(nodeId);
+
+        discoverSonos(config, (secrets) => {
+            RED.log.debug("GET /secretSearch: " + secrets.length + " found");
+            res.json(secrets);
+        });
+    });
+
+    function discoverSonos(config, discoveryCallback) {
+        let client = config.getClient();
+        client.listSecrets({ all: true })
+            .then(secrets => discoveryCallback(secrets))
+            .catch(err => this.error(err));
+    }
+    
     RED.nodes.registerType('docker-secret-actions', DockerSecretAction);
 }
 

@@ -1,30 +1,30 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 module.exports = function (RED) {
-    function DockerNetworkAction(n) {
+    function DockerImageAction(n) {
         var _this = this;
         RED.nodes.createNode(this, n);
         var config = RED.nodes.getNode(n.config);
         var client = config.getClient();
         this.on('input', function (msg) {
-            var networkId = n.network || msg.payload.networkId || msg.networkId || undefined;
+            var imageId = n.image || msg.payload.imageId || msg.imageId || undefined;
             var action = n.action || msg.action || msg.payload.action || undefined;
-            var options = n.options || msg.options || msg.payload.options || undefined;
-            if (networkId === undefined && !['list', 'prune', 'create'].includes(action)) {
-                _this.error("Network id/name must be provided via configuration or via `msg.network`");
+            var options = {};
+            if (imageId === undefined && !['list', 'prune', 'create'].includes(action)) {
+                _this.error("Image id/name must be provided via configuration or via `msg.image`");
                 return;
             }
             _this.status({});
-            executeAction(networkId, options, client, action, _this, msg);
+            executeAction(imageId, options, client, action, _this, msg);
         });
-        function executeAction(networkId, options, client, action, node, msg) {
-            var network = client.getNetwork(networkId);
+        function executeAction(imageId, options, client, action, node, msg) {
+            var image = client.getImage(imageId);
             switch (action) {
                 case 'list':
-                    // https://docs.docker.com/engine/api/v1.40/#operation/NetworkList
-                    client.listNetworks({ all: true })
+                    // https://docs.docker.com/engine/api/v1.40/#operation/ImagesList
+                    client.listImages({ all: true })
                         .then(function (res) {
-                        node.status({ fill: 'green', shape: 'dot', text: networkId + ' started' });
+                        node.status({ fill: 'green', shape: 'dot', text: imageId + ' started' });
                         node.send(Object.assign(msg, { payload: res }));
                     }).catch(function (err) {
                         if (err.statusCode === 400) {
@@ -42,78 +42,10 @@ module.exports = function (RED) {
                     });
                     break;
                 case 'inspect':
-                    // https://docs.docker.com/engine/api/v1.40/#operation/NetworkInspect
-                    network.inspect()
+                    // https://docs.docker.com/engine/api/v1.40/#operation/ImageInspect
+                    image.inspect()
                         .then(function (res) {
-                        node.status({ fill: 'green', shape: 'dot', text: networkId + ' started' });
-                        node.send(Object.assign(msg, { payload: res }));
-                    }).catch(function (err) {
-                        if (err.statusCode === 500) {
-                            node.error("Server Error: [" + err.statusCode + "] " + err.reason);
-                            node.send({ payload: err });
-                        }
-                        else {
-                            node.error("Sytem Error:  [" + err.statusCode + "] " + err.reason);
-                            return;
-                        }
-                    });
-                    break;
-                case 'remove':
-                    // https://docs.docker.com/engine/api/v1.40/#operation/NetworkRemove
-                    network.remove()
-                        .then(function (res) {
-                        node.status({ fill: 'green', shape: 'dot', text: networkId + ' remove' });
-                        node.send(Object.assign(msg, { payload: res }));
-                    }).catch(function (err) {
-                        if (err.statusCode === 500) {
-                            node.error("Server Error: [" + err.statusCode + "] " + err.reason);
-                            node.send({ payload: err });
-                        }
-                        else {
-                            node.error("Sytem Error:  [" + err.statusCode + "] " + err.reason);
-                            return;
-                        }
-                    });
-                    break;
-                case 'connect':
-                    // https://docs.docker.com/engine/api/v1.40/#operation/NetworkConnect
-                    network.connect()
-                        .then(function (res) {
-                        node.status({ fill: 'green', shape: 'dot', text: networkId + ' remove' });
-                        node.send(Object.assign(msg, { payload: res }));
-                    }).catch(function (err) {
-                        if (err.statusCode === 500) {
-                            node.error("Server Error: [" + err.statusCode + "] " + err.reason);
-                            node.send({ payload: err });
-                        }
-                        else {
-                            node.error("Sytem Error:  [" + err.statusCode + "] " + err.reason);
-                            return;
-                        }
-                    });
-                    break;
-                case 'disconnect':
-                    // https://docs.docker.com/engine/api/v1.40/#operation/NetworkDisconnect
-                    network.disconnect()
-                        .then(function (res) {
-                        node.status({ fill: 'green', shape: 'dot', text: networkId + ' remove' });
-                        node.send(Object.assign(msg, { payload: res }));
-                    }).catch(function (err) {
-                        if (err.statusCode === 500) {
-                            node.error("Server Error: [" + err.statusCode + "] " + err.reason);
-                            node.send({ payload: err });
-                        }
-                        else {
-                            node.error("Sytem Error:  [" + err.statusCode + "] " + err.reason);
-                            return;
-                        }
-                    });
-                    break;
-                case 'prune':
-                    // https://docs.docker.com/engine/api/v1.40/#operation/NetworkPrune
-                    client.pruneImages()
-                        .then(function (res) {
-                        node.status({ fill: 'green', shape: 'dot', text: networkId + ' remove' });
+                        node.status({ fill: 'green', shape: 'dot', text: imageId + ' started' });
                         node.send(Object.assign(msg, { payload: res }));
                     }).catch(function (err) {
                         if (err.statusCode === 500) {
@@ -127,10 +59,80 @@ module.exports = function (RED) {
                     });
                     break;
                 case 'create':
-                    // https://docs.docker.com/engine/api/v1.40/#operation/NetworkCreate
-                    client.createNetwork(options)
+                    // https://docs.docker.com/engine/api/v1.40/#operation/ImageCreate
+                    client.createImage(options)
                         .then(function (res) {
-                        node.status({ fill: 'green', shape: 'dot', text: networkId + ' remove' });
+                        node.status({ fill: 'green', shape: 'dot', text: imageId + ' remove' });
+                        node.send(Object.assign(msg, { payload: res }));
+                    }).catch(function (err) {
+                        if (err.statusCode === 500) {
+                            node.error("Server Error: [" + err.statusCode + "] " + err.reason);
+                            node.send({ payload: err });
+                        }
+                        else {
+                            node.error("Sytem Error:  [" + err.statusCode + "] " + err.reason);
+                            return;
+                        }
+                    });
+                    break;
+                case 'remove':
+                    // https://docs.docker.com/engine/api/v1.40/#operation/ImageRemove
+                    image.remove()
+                        .then(function (res) {
+                        node.status({ fill: 'green', shape: 'dot', text: imageId + ' remove' });
+                        node.send(Object.assign(msg, { payload: res }));
+                    }).catch(function (err) {
+                        if (err.statusCode === 500) {
+                            node.error("Server Error: [" + err.statusCode + "] " + err.reason);
+                            node.send({ payload: err });
+                        }
+                        else {
+                            node.error("Sytem Error:  [" + err.statusCode + "] " + err.reason);
+                            return;
+                        }
+                    });
+                    break;
+                case 'history':
+                    // https://docs.docker.com/engine/api/v1.40/#operation/ImageHistory
+                    image.history()
+                        .then(function (res) {
+                        node.status({ fill: 'green', shape: 'dot', text: imageId + ' remove' });
+                        node.send(Object.assign(msg, { payload: res }));
+                    }).catch(function (err) {
+                        if (err.statusCode === 500) {
+                            node.error("Server Error: [" + err.statusCode + "] " + err.reason);
+                            node.send({ payload: err });
+                        }
+                        else {
+                            node.error("Sytem Error:  [" + err.statusCode + "] " + err.reason);
+                            return;
+                        }
+                    });
+                    break;
+                case 'tag':
+                    // https://docs.docker.com/engine/api/v1.40/#operation/ImageTag
+                    var repo = 'bla/bla';
+                    var tag = 'Hello';
+                    image.tag({ "repo": repo, "tag": tag })
+                        .then(function (res) {
+                        node.status({ fill: 'green', shape: 'dot', text: imageId + ' remove' });
+                        node.send(Object.assign(msg, { payload: res }));
+                    }).catch(function (err) {
+                        if (err.statusCode === 500) {
+                            node.error("Server Error: [" + err.statusCode + "] " + err.reason);
+                            node.send({ payload: err });
+                        }
+                        else {
+                            node.error("Sytem Error:  [" + err.statusCode + "] " + err.reason);
+                            return;
+                        }
+                    });
+                    break;
+                case 'push':
+                    // https://docs.docker.com/engine/api/v1.40/#operation/ImagePush
+                    image.push()
+                        .then(function (res) {
+                        node.status({ fill: 'green', shape: 'dot', text: imageId + ' remove' });
                         node.send(Object.assign(msg, { payload: res }));
                     }).catch(function (err) {
                         if (err.statusCode === 500) {
@@ -149,21 +151,21 @@ module.exports = function (RED) {
             }
         }
     }
-    RED.httpAdmin.post("/networkSearch", function (req, res) {
-        RED.log.debug("POST /networkSearch");
+    RED.httpAdmin.post("/imageSearch", function (req, res) {
+        RED.log.debug("POST /imageSearch");
         var nodeId = req.body.id;
         var config = RED.nodes.getNode(nodeId);
-        discoverSonos(config, function (networks) {
-            RED.log.debug("GET /networkSearch: " + networks.length + " found");
-            res.json(networks);
+        discoverSonos(config, function (images) {
+            RED.log.debug("GET /imageSearch: " + images.length + " found");
+            res.json(images);
         });
     });
     function discoverSonos(config, discoveryCallback) {
         var _this = this;
         var client = config.getClient();
-        client.listNetworks({ all: true })
-            .then(function (networks) { return discoveryCallback(networks); })
+        client.listImages({ all: true })
+            .then(function (images) { return discoveryCallback(images); })
             .catch(function (err) { return _this.error(err); });
     }
-    RED.nodes.registerType('docker-network-actions', DockerNetworkAction);
+    RED.nodes.registerType('docker-image-actions', DockerImageAction);
 };

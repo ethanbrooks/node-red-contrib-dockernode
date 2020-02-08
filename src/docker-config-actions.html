@@ -6,15 +6,31 @@
         defaults: {
             name: { value: "" },
             config: { value: "", type: "docker-configuration", required: true },
+            volume: { value: "" },
+            action: { value: "inspect" }
         },
         inputs: 1,
         outputs: 1,
         icon: 'docker.png',
         label: function () {
-            return this.name || "Config Action"
+            if (this.name){
+                return this.name;
+            } else {
+                actions = {
+                    "list": "Config List",
+                    "create": "Config Create",
+                    "inspect": "Config Inspect",
+                    "remove": "Config Delete",
+                    "update": "Config Update"
+                }
+                return this.label||actions[this.action];
+            }
         },
         paletteLabel: function () {
-            return this.name || "Config Action"
+            return this.name || "Config"
+        },
+        oneditsave: function () {
+            this.label = $('#node-input-action option:selected').text();
         },
         oneditprepare: function () {
             let id = this.config;
@@ -63,21 +79,22 @@
     <div class="form-row">
         <label for="node-input-action"><i class="fa fa-wrench"></i> Action</label>      
         <select type="text" id="node-input-action" style="display: inline-block; vertical-align: top;">
-            <option value="">Use 'msg.action'</option>
-            <option value="inspect">Inspect</option>
-            <option value="update">Update</option>
-            <option value="logs">Logs</option>
+            <option value="list">Config List</option>
+            <option value="create">Config Create</option>
+            <option value="inspect">Config Inspect</option>
+            <option value="remove">Config Delete</option>
+            <option value="update">Config Update</option>
         </select>
     </div>
 </script>
 
 <script type="text/x-red" data-help-name="docker-config-actions">
     <p>Manage a docker config</p>
-
-    <p>Possible actions:
     <ul>
-        <li>inspect</li>
-        <li>update</li>
-        <li>logs</li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/ConfigList">client.listConfigs({ all: true }) </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/ConfigCreate">client.createConfig(options) </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/ConfigInspect">config.inspect() </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/ConfigDelete">config.remove() </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/ConfigUpdate">config.update() </a></li>
     </ul>
 </script>

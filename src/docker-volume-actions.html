@@ -7,23 +7,36 @@
             name: { value: "" },
             config: { value: "", type: "docker-configuration", required: true },
             volume: { value: "" },
-            action: { value: "" }
+            action: { value: "inspect" }
         },
         inputs: 1,
         outputs: 1,
         icon: 'docker.png',
         label: function () {
-            return this.name || "Volume Action"
+            if (this.name){
+                return this.name;
+            } else {
+                var actions = {
+                    "list": "Volume List",
+                    "create": "Volume Create",
+                    "prune": "Volume Prune",
+                    "inspect": "Volume Inspect",
+                    "remove": "Volume Remove",
+                };
+                return this.label||actions[this.action];
+            }
         },
         paletteLabel: function () {
-            return this.name || "Volume Action"
+            return this.name || "Volume"
+        },
+        oneditsave: function () {
+            this.label = $('#node-input-action option:selected').text();
         },
         oneditprepare: function () {
             let id = this.config;
             $('#node-input-action').change(function () {
                 var value = $('#node-input-action').val()
             })
-
 
             $("#node-input-volume").click(function () {
                 $.post('volumeSearch', { id: id }, function (data) {
@@ -65,19 +78,22 @@
     <div class="form-row">
         <label for="node-input-action"><i class="fa fa-wrench"></i> Action</label>      
         <select type="text" id="node-input-action" style="display: inline-block; vertical-align: top;">
-            <option value="">Use 'msg.action'</option>
-            <option value="inspect">Inspect</option>
-            <option value="remove">Remove</option>      
+            <option value="list">Volume List</option>
+            <option value="create">Volume Create</option>
+            <option value="prune">Volume Prune</option>
+            <option value="inspect">Volume Inspect</option>
+            <option value="remove">Volume Remove</option>      
         </select>
     </div>
 </script>
 
 <script type="text/x-red" data-help-name="docker-volume-actions">
     <p>Manage a docker volume</p>
-
-    <p>Possible actions:
     <ul>
-        <li>inspect</li>
-        <li>remove</li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/VolumeList">client.listVolumes()  </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/VolumeInspect">volume.inspect()  </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/VolumeDelete">volume.remove()  </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/VolumeCreate">client.createVolume()  </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/VolumePrune">client.pruneVolumes()   </a></li>
     </ul>
 </script>

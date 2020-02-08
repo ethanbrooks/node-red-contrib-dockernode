@@ -57,4 +57,3 @@ module.exports = function (RED: Red) {
 
     RED.nodes.registerType('docker-events', DockerEvents);
 }
-

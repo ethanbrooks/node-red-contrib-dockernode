@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-dockerode",
-  "version": "0.4.2",
+  "version": "0.4.20",
   "description": "node-red nodes to communicate with docker",
   "author": {
     "name": "naimo84",
@@ -39,32 +39,22 @@
     "nodes": {
       "docker-configuration": "dist/docker-configuration.js",
       "docker-events": "dist/docker-events.js",
-      "docker-actions": "dist/docker-actions.js",
-      "docker-config": "dist/docker-config.js",
-      "docker-images": "dist/docker-images.js",
-      "docker-images-actions": "dist/docker-images-actions.js",
-      "docker-containers": "dist/docker-containers.js",
+      "docker-swarm-actions": "dist/docker-swarm-actions.js",
+      "docker-engine-actions": "dist/docker-engine-actions.js",
+      "docker-config-actions": "dist/docker-config-actions.js",
+      "docker-image-actions": "dist/docker-image-actions.js",
       "docker-container-actions": "dist/docker-container-actions.js",
-      "docker-container-attach": "dist/docker-container-attach.js",
-      "docker-service": "dist/docker-services.js",
-      "docker-service-action": "dist/docker-service-actions.js",
-      "docker-task": "dist/docker-tasks.js",
-      "docker-task-action": "dist/docker-task-actions.js",
-      "docker-node": "dist/docker-nodes.js",
-      "docker-node-action": "dist/docker-node-actions.js",
-      "docker-secret": "dist/docker-secrets.js",
+      "docker-service-actions": "dist/docker-service-actions.js",
+      "docker-task-actions": "dist/docker-task-actions.js",
+      "docker-node-actions": "dist/docker-node-actions.js",
       "docker-secret-actions": "dist/docker-secret-actions.js",
-      "docker-network": "dist/docker-networks.js",
       "docker-network-actions": "dist/docker-network-actions.js",
-      "docker-volume": "dist/docker-volumes.js",
       "docker-volume-actions": "dist/docker-volume-actions.js",
-      "docker-plugin": "dist/docker-plugins.js",
       "docker-plugin-actions": "dist/docker-plugin-actions.js"
     }
   },
   "dependencies": {
-    "docker-compose": "^0.23.2",
-    "dockerode": "^3.0.2",
+    "dockerode": "^2.5.8",
     "stream": "0.0.2"
   },
   "devDependencies": {
@@ -77,7 +67,7 @@
     "gulp-typescript": "^5.0.1",
     "husky": "^3.0.5",
     "mocha": "6.2.0",
-    "node-red": "0.20.7",
+    "node-red": "0.20.8",
     "node-red-contrib-mock-node": "^0.4.0",
     "node-red-node-test-helper": "^0.2.3",
     "should": "13.2.3",

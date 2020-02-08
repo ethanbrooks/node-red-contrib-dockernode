@@ -4,71 +4,136 @@ import * as Dockerode from 'dockerode';
 
 module.exports = function (RED: Red) {
  
-
     function DockerConfigAction(n: any) {
         RED.nodes.createNode(this, n);
         let config = RED.nodes.getNode(n.config) as unknown as DockerConfiguration;
         let client = config.getClient();
         this.on('input', (msg) => {
-
-            let cid: string = n.config || msg.config || undefined;
-            let action = n.action || msg.action || msg.payload || undefined;
-            let cmd = n.cmd || msg.cmd|| msg.command || undefined;
-
-            if (cid === undefined) {
+            RED.log.debug(msg);
+            let configId: string = n.config || msg.payload.configId || msg.configId || undefined;
+            let action = n.action || msg.action || msg.payload.action || undefined;
+            let options = n.options || msg.options || msg.payload.options || undefined;
+            if (configId === undefined && !['list', 'prune', 'create'].includes(action)) {
                 this.error("Config id/name must be provided via configuration or via `msg.config`");
                 return;
             }
             this.status({});
-            executeAction(cid, client, action, cmd, this,msg);
+            executeAction(configId, options, client, action, this,msg);
         });
 
-        function executeAction(cid: string, client: Dockerode, action: string, cmd: any, node: Node,msg) {
-console.log(cmd);
-            let config = client.getConfig(cid);
+        function executeAction(configId: string, options: any, client: Dockerode, action: string, node: Node,msg) {
+
+            let config = client.getConfig(configId);
 
             switch (action) {
+
+                case 'list':
+                    // https://docs.docker.com/engine/api/v1.40/#operation/ConfigList
+                    client.listConfigs({ all: true })
+                        .then(res => {
+                            node.status({ fill: 'green', shape: 'dot', text: configId + ' started' });
+                            node.send(Object.assign(msg,{ payload: res }));
+                        }).catch(err => {
+                            if (err.statusCode === 400) {
+                                node.error(`Bad parameter:  ${err.reason}`);
+                                node.send({ payload: err });
+                            } else if (err.statusCode === 500) {
+                                node.error(`Server Error: [${err.statusCode}] ${err.reason}`);
+                                node.send({ payload: err });
+                            } else {
+                                node.error(`Sytem Error:  [${err.statusCode}] ${err.reason}`);
+                                return;
+                            }
+                        });
+                    break;
+
+                case 'create':
+                    // https://docs.docker.com/engine/api/v1.40/#operation/ConfigCreate
+                    client.createConfig(options)
+                        .then(res => {
+                            node.status({ fill: 'green', shape: 'dot', text: configId + ' remove' });
+                            node.send(Object.assign(msg,{ payload: res }));
+                        }).catch(err => {
+                            if (err.statusCode === 500) {
+                                node.error(`Server Error: [${err.statusCode}] ${err.reason}`);
+                                node.send({ payload: err });
+                            } else if (err.statusCode === 409) {
+                                node.error(`Name conflicts with an existing objectd: [${configId}]`);
+                                node.send({ payload: err });
+                            } else {
+                                node.error(`Sytem Error:  [${err.statusCode}] ${err.reason}`);
+                                return;
+                            }
+                        });
+                    break;
+
                 case 'inspect':
+                    // https://docs.docker.com/engine/api/v1.40/#operation/ConfigInspect
                     config.inspect()
                         .then(res => {
-                            node.status({ fill: 'green', shape: 'dot', text: cid + ' started' });
+                            node.status({ fill: 'green', shape: 'dot', text: configId + ' started' });
                             node.send(Object.assign(msg,{ payload: res }));
                         }).catch(err => {
-                            if (err.statusCode === 304) {
-                                node.warn(`Unable to start config "${cid}", config is already started.`);
+                            if (err.statusCode === 503) {
+                                node.error(`Node is not part of a swarm: [${configId}]`);
+                                node.send({ payload: err });
+                            } else if (err.statusCode === 404) {
+                                node.error(`Config not found: [${configId}]`);
+                                node.send({ payload: err });
+                            } else if (err.statusCode === 500) {
+                                node.error(`Server Error: [${err.statusCode}] ${err.reason}`);
                                 node.send({ payload: err });
                             } else {
-                                node.error(`Error starting config:  [${err.statusCode}] ${err.reason}`);
+                                node.error(`Sytem Error:  [${err.statusCode}] ${err.reason}`);
                                 return;
                             }
                         });
                     break;
+
                 case 'remove':
+                    // https://docs.docker.com/engine/api/v1.40/#operation/ConfigDelete
                     config.remove()
                         .then(res => {
-                            node.status({ fill: 'green', shape: 'dot', text: cid + ' remove' });
+                            node.status({ fill: 'green', shape: 'dot', text: configId + ' remove' });
                             node.send(Object.assign(msg,{ payload: res }));
                         }).catch(err => {
-                            if (err.statusCode === 304) {
-                                node.warn(`Unable to stop config "${cid}", config is already removed.`);
+                            if (err.statusCode === 503) {
+                                node.error(`Node is not part of a swarm: [${configId}]`);
+                                node.send({ payload: err });
+                            } else if (err.statusCode === 404) {
+                                node.error(`Config not found: [${configId}]`);
+                                node.send({ payload: err });
+                            } else if(err.statusCode === 500) {
+                                node.error(`Server Error: [${err.statusCode}] ${err.reason}`);
                                 node.send({ payload: err });
                             } else {
-                                node.error(`Error removing config: [${err.statusCode}] ${err.reason}`);
+                                node.error(`Sytem Error:  [${err.statusCode}] ${err.reason}`);
                                 return;
                             }
                         });
                     break;
+
                 case 'update':
+                    // https://docs.docker.com/engine/api/v1.40/#operation/ConfigUpdate
                     config.update()
                         .then(res => {
-                            node.status({ fill: 'green', shape: 'dot', text: cid + ' remove' });
+                            node.status({ fill: 'green', shape: 'dot', text: configId + ' remove' });
                             node.send(Object.assign(msg,{ payload: res }));
                         }).catch(err => {
-                            if (err.statusCode === 304) {
-                                node.warn(`Unable to stop config "${cid}", config is already removed.`);
+                            if (err.statusCode === 503) {
+                                node.error(`Node is not part of a swarm: [${configId}]`);
+                                node.send({ payload: err });
+                            } else if (err.statusCode === 400) {
+                                node.error(`Bad parameter: [${configId}]`);
+                                node.send({ payload: err });
+                            } else if (err.statusCode === 404) {
+                                node.error(`Config not found: [${configId}]`);
+                                node.send({ payload: err });
+                            } else if(err.statusCode === 500) {
+                                node.error(`Server Error: [${err.statusCode}] ${err.reason}`);
                                 node.send({ payload: err });
                             } else {
-                                node.error(`Error removing config: [${err.statusCode}] ${err.reason}`);
+                                node.error(`Sytem Error:  [${err.statusCode}] ${err.reason}`);
                                 return;
                             }
                         });
@@ -79,6 +144,26 @@ console.log(cmd);
                     return;
             }
         }
+    }
+
+    
+    RED.httpAdmin.post("/configSearch", function (req, res) {
+        RED.log.debug("POST /configSearch");
+
+        const nodeId = req.body.id;
+        let config = RED.nodes.getNode(nodeId);
+
+        discoverSonos(config, (configs) => {
+            RED.log.debug("GET /configSearch: " + configs.length + " found");
+            res.json(configs);
+        });
+    });
+
+    function discoverSonos(config, discoveryCallback) {
+        let client = config.getClient();
+        client.listConfigs({ all: true })
+            .then(configs => discoveryCallback(configs))
+            .catch(err => this.error(err));
     }
 
     RED.nodes.registerType('docker-config-actions', DockerConfigAction);

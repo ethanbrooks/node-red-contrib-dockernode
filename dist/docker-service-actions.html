@@ -7,16 +7,30 @@
             name: { value: "" },
             config: { value: "", type: "docker-configuration", required: true },
             service: { value: "" },
-            action: { value: "" }
+            action: { value: "inspect" }
         },
         inputs: 1,
         outputs: 1,
         icon: 'docker.png',
         label: function () {
-            return this.name || "Service Action"
+            if (this.name){
+                return this.name;
+            } else {
+                var actions = {
+                    "list": "Service List",
+                    "create": "Service Create",
+                    "inspect": "Service Inspect",
+                    "update": "Service Update",
+                    "logs": "Service Logs",
+                };
+                return this.label||actions[this.action];
+            }
         },
         paletteLabel: function () {
-            return this.name || "Service Action"
+            return this.name || "Service"
+        },
+        oneditsave: function () {
+            this.label = $('#node-input-action option:selected').text();
         },
         oneditprepare: function () {
             let id = this.config;
@@ -65,21 +79,23 @@
     <div class="form-row">
         <label for="node-input-action"><i class="fa fa-wrench"></i> Action</label>      
         <select type="text" id="node-input-action" style="display: inline-block; vertical-align: top;">
-            <option value="">Use 'msg.action'</option>
-            <option value="inspect">Inspect</option>
-            <option value="update">Update</option>
-            <option value="logs">Logs</option>
+            <option value="list">Service List</option>
+            <option value="create">Service Create</option>
+            <option value="inspect">Service Inspect</option>
+            <option value="update">Service Update</option>
+            <option value="logs">Service Logs</option>
         </select>
     </div>
 </script>
 
 <script type="text/x-red" data-help-name="docker-service-actions">
     <p>Manage a docker service</p>
-
-    <p>Possible actions:
     <ul>
-        <li>inspect</li>
-        <li>update</li>
-        <li>logs</li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/ServiceList">client.listServices({ all: true }) </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/ServiceCreate">client.createService(options) </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/ServiceInspect">service.inspect() </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/ServiceUpdate">service.update(options) </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/ServiceDelete">service.remove() </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/ServiceLogs">service.logs() </a></li>
     </ul>
 </script>

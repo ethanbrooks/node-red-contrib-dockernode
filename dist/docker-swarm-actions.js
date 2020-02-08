@@ -1,67 +1,25 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 module.exports = function (RED) {
-    function DockerNodeAction(n) {
+    function DockerSwarmAction(n) {
         var _this = this;
         RED.nodes.createNode(this, n);
         var config = RED.nodes.getNode(n.config);
         var client = config.getClient();
         this.on('input', function (msg) {
-            var nodeId = n.node || msg.payload.nodeId || msg.nodeId || undefined;
             var action = n.action || msg.action || msg.payload.action || undefined;
-            if (nodeId === undefined && !['list', 'prune', 'create'].includes(action)) {
-                _this.error("Node id/name must be provided via configuration or via `msg.node`");
-                return;
-            }
+            var options = n.options || msg.options || msg.options || msg.payload.options || undefined;
             _this.status({});
-            executeAction(nodeId, client, action, _this, msg);
+            executeAction(options, client, action, _this, msg);
         });
-        function executeAction(nodeId, client, action, node, msg) {
-            var nodeClient = client.getNode(nodeId);
+        function executeAction(options, client, action, node, msg) {
+            var swarm = client;
             switch (action) {
-                case 'list':
-                    // https://docs.docker.com/engine/api/v1.40/#operation/NodeList
-                    client.listNodes({ all: true })
-                        .then(function (res) {
-                        node.status({ fill: 'green', shape: 'dot', text: nodeId + ' started' });
-                        node.send(Object.assign(msg, { payload: res }));
-                    }).catch(function (err) {
-                        if (err.statusCode === 400) {
-                            node.error("Bad parameter:  " + err.reason);
-                            node.send({ payload: err });
-                        }
-                        else if (err.statusCode === 500) {
-                            node.error("Server Error: [" + err.statusCode + "] " + err.reason);
-                            node.send({ payload: err });
-                        }
-                        else {
-                            node.error("Sytem Error:  [" + err.statusCode + "] " + err.reason);
-                            return;
-                        }
-                    });
-                    break;
                 case 'inspect':
-                    // https://docs.docker.com/engine/api/v1.40/#operation/NodeInspect
-                    nodeClient.inspect()
+                    // https://docs.docker.com/engine/api/v1.40/#operation/SwarmInspect
+                    swarm.swarmInspect()
                         .then(function (res) {
-                        node.status({ fill: 'green', shape: 'dot', text: nodeId + ' started' });
-                        node.send(Object.assign(msg, { payload: res }));
-                    }).catch(function (err) {
-                        if (err.statusCode === 500) {
-                            node.error("Server Error: [" + err.statusCode + "] " + err.reason);
-                            node.send({ payload: err });
-                        }
-                        else {
-                            node.error("Sytem Error:  [" + err.statusCode + "] " + err.reason);
-                            return;
-                        }
-                    });
-                    break;
-                case 'remove':
-                    // https://docs.docker.com/engine/api/v1.40/#operation/NodeDelete
-                    nodeClient.remove()
-                        .then(function (res) {
-                        node.status({ fill: 'green', shape: 'dot', text: nodeId + ' stopped' });
+                        node.status({ fill: 'green', shape: 'dot', text: ' started' });
                         node.send(Object.assign(msg, { payload: res }));
                     }).catch(function (err) {
                         if (err.statusCode === 500) {
@@ -75,10 +33,10 @@ module.exports = function (RED) {
                     });
                     break;
                 case 'update':
-                    // https://docs.docker.com/engine/api/v1.40/#operation/NodeUpdate
-                    nodeClient.update()
+                    // https://docs.docker.com/engine/api/v1.40/#operation/SwarmUpdate
+                    swarm.swarmUpdate(options)
                         .then(function (res) {
-                        node.status({ fill: 'green', shape: 'dot', text: nodeId + ' restarted' });
+                        node.status({ fill: 'green', shape: 'dot', text: ' stopped' });
                         node.send(Object.assign(msg, { payload: res }));
                     }).catch(function (err) {
                         if (err.statusCode === 500) {
@@ -91,27 +49,66 @@ module.exports = function (RED) {
                         }
                     });
                     break;
+                case 'join':
+                    // https://docs.docker.com/engine/api/v1.40/#operation/SwarmJoin
+                    swarm.swarmJoin(options)
+                        .then(function (res) {
+                        node.status({ fill: 'green', shape: 'dot', text: ' remove' });
+                        node.send(Object.assign(msg, { payload: res }));
+                    }).catch(function (err) {
+                        if (err.statusCode === 500) {
+                            node.error("Server Error: [" + err.statusCode + "] " + err.reason);
+                            node.send({ payload: err });
+                        }
+                        else {
+                            node.error("Sytem Error:  [" + err.statusCode + "] " + err.reason);
+                            return;
+                        }
+                    });
+                    break;
+                case 'leave':
+                    // https://docs.docker.com/engine/api/v1.40/#operation/SwarmLeave
+                    swarm.swarmLeave(options)
+                        .then(function (res) {
+                        node.status({ fill: 'green', shape: 'dot', text: ' remove' });
+                        node.send(Object.assign(msg, { payload: res }));
+                    }).catch(function (err) {
+                        if (err.statusCode === 500) {
+                            node.error("Server Error: [" + err.statusCode + "] " + err.reason);
+                            node.send({ payload: err });
+                        }
+                        else {
+                            node.error("Sytem Error:  [" + err.statusCode + "] " + err.reason);
+                            return;
+                        }
+                    });
+                    break;
+                case 'init':
+                    // https://docs.docker.com/engine/api/v1.40/#operation/SwarmInit
+                    swarm.swarmInit(options)
+                        .then(function (res) {
+                        node.status({ fill: 'green', shape: 'dot', text: ' remove' });
+                        node.send(Object.assign(msg, { payload: res }));
+                    }).catch(function (err) {
+                        if (err.statusCode === 500) {
+                            node.error("Server Error: [" + err.statusCode + "] " + err.reason);
+                            node.send({ payload: err });
+                        }
+                        else if (err.statusCode === 400) {
+                            node.warn("Unable to init swarm. Bad payload.");
+                            node.send({ payload: err });
+                        }
+                        else {
+                            node.error("Error init swarm: [" + err.statusCode + "] " + err.reason);
+                            return;
+                        }
+                    });
+                    break;
                 default:
                     node.error("Called with an unknown action: " + action);
                     return;
             }
         }
     }
-    RED.httpAdmin.post("/nodeSearch", function (req, res) {
-        RED.log.debug("POST /nodeSearch");
-        var nodeId = req.body.id;
-        var config = RED.nodes.getNode(nodeId);
-        discoverSonos(config, function (nodes) {
-            RED.log.debug("GET /nodeSearch: " + nodes.length + " found");
-            res.json(nodes);
-        });
-    });
-    function discoverSonos(config, discoveryCallback) {
-        var _this = this;
-        var client = config.getClient();
-        client.listNodes({ all: true })
-            .then(function (nodes) { return discoveryCallback(nodes); })
-            .catch(function (err) { return _this.error(err); });
-    }
-    RED.nodes.registerType('docker-node-actions', DockerNodeAction);
+    RED.nodes.registerType('docker-swarm-actions', DockerSwarmAction);
 };

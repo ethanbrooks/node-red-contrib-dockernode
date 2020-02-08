@@ -7,16 +7,28 @@
             name: { value: "" },
             config: { value: "", type: "docker-configuration", required: true },
             task: { value: "" },
-            action: { value: "" }
+            action: { value: "inspect" }
         },
         inputs: 1,
         outputs: 1,
         icon: 'docker.png',
         label: function () {
-            return this.name || "Task Action"
+            if (this.name){
+                return this.name;
+            } else {
+                var actions = {
+                    "list": "Task List",
+                    "inspect": "Task Inspect",
+                    "log": "Task Session"
+                };
+                return this.label||actions[this.action];
+            }
         },
         paletteLabel: function () {
-            return this.name || "Task Action"
+            return this.name || "Task"
+        },
+        oneditsave: function () {
+            this.label = $('#node-input-action option:selected').text();
         },
         oneditprepare: function () {
             let id = this.config;
@@ -61,21 +73,18 @@
     <div class="form-row">
         <label for="node-input-action"><i class="fa fa-wrench"></i> Action</label>      
         <select type="text" id="node-input-action" style="display: inline-block; vertical-align: top;">
-            <option value="">Use 'msg.action'</option>
-            <option value="inspect">Inspect</option>
-            <option value="remove">Remove</option>
-            <option value="update">Update</option>
+            <option value="list">Task List</option>
+            <option value="inspect">Task Inspect</option>
+<!--//            <option value="log">Task Session</option> //-->
         </select>
     </div>
 </script>
 
 <script type="text/x-red" data-help-name="docker-task-actions">
     <p>Manage a docker task</p>
-
-    <p>Possible actions:
     <ul>
-        <li>Inspect</li>
-        <li>Remove</li>
-        <li>Update</li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/TaskList">client.listTasks({ all: true }) </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/TaskInspect">task.inspect() </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/Session">task.logs(options) </a></li>
     </ul>
 </script>

@@ -14,7 +14,10 @@
         icon: 'docker.png',
         label: function() {
             return this.name || this.topic || "Events"
-        }
+        },
+        paletteLabel: function () {
+            return this.name || "Events"
+        },
     });
 </script>
 
@@ -32,4 +35,3 @@
 <script type="text/x-red" data-help-name="docker-events">
     <p>Register for events from a Docker engine instance.</p>
 </script>
-

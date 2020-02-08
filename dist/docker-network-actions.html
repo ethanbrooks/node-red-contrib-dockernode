@@ -7,16 +7,32 @@
             name: { value: "" },
             config: { value: "", type: "docker-configuration", required: true },
             network: { value: "" },
-            action: { value: "" }
+            action: { value: "inspect" }
         },
         inputs: 1,
         outputs: 1,
         icon: 'docker.png',
         label: function () {
-            return this.name || "Network Action"
+            if (this.name){
+                return this.name;
+            } else {
+                var actions = {
+                    "list": "Netork List",
+                    "inspect": "Network Inspect",
+                    "remove": "Network Delete",
+                    "connect": "Network Connect",
+                    "disconnect": "Network Disconnect",
+                    "prune": "Network Prune",
+                    "create": "Network Create"
+                };
+                return this.label||actions[this.action];
+            }
         },
         paletteLabel: function () {
-            return this.name || "Network Action"
+            return this.name || "Network"
+        },
+        oneditsave: function () {
+            this.label = $('#node-input-action option:selected').text();
         },
         oneditprepare: function () {
             let id = this.config;
@@ -65,21 +81,26 @@
     <div class="form-row">
         <label for="node-input-action"><i class="fa fa-wrench"></i> Action</label>      
         <select type="text" id="node-input-action" style="display: inline-block; vertical-align: top;">
-            <option value="">Use 'msg.action'</option>
-            <option value="inspect">Inspect</option>
-            <option value="update">Update</option>
-            <option value="logs">Logs</option>
+            <option value="list">Netork List</option>
+            <option value="inspect">Network Inspect</option>
+            <option value="remove">Network Delete</option>
+            <option value="connect">Network Connect</option>
+            <option value="disconnect">Network Disconnect</option>
+            <option value="prune">Network Prune</option>
+            <option value="create">Network Create</option>
         </select>
     </div>
 </script>
 
 <script type="text/x-red" data-help-name="docker-network-actions">
     <p>Manage a docker network</p>
-
-    <p>Possible actions:
     <ul>
-        <li>inspect</li>
-        <li>update</li>
-        <li>logs</li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/NetworkList">client.listNetworks({ all: true }) </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/NetworkInspect">network.inspect() </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/NetworkRemove">network.remove() </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/NetworkConnect">network.connect() </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/NetworkDisconnect">network.disconnect() </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/NetworkPrune">client.pruneImages() </a></li>
+        <li><a href="https://docs.docker.com/engine/api/v1.40/#operation/NetworkCreate">client.createNetwork(options) </a></li>
     </ul>
 </script>
